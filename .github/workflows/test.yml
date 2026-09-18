@@ -1,0 +1,50 @@
+name: free-disk-space-test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Download ncdu
+        run: |
+          wget https://dev.yorhel.nl/download/ncdu-2.9.2-linux-x86.tar.gz
+          tar -xvf ncdu-2.9.2-linux-x86.tar.gz
+          chmod +x ncdu
+          echo "ncdu version:"
+          sudo ./ncdu --version
+
+      - name: Generate ncdu Disk Usage Report
+        run: |
+          echo "Starting disk scan..."
+          sudo ./ncdu -0 -x --exclude-kernfs -t 4 -c -o disk-usage-before.json.zst /
+          echo "Scan complete."
+          ls -lh disk-usage-before.json.zst
+
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@v2
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          preinstalled-runtimes: false
+          swap-storage: false
+
+      - name: Generate ncdu Disk Usage Report
+        run: |
+          echo "Starting disk scan..."
+          sudo ./ncdu -0 -x --exclude-kernfs -t 4 -c -o disk-usage-after.json.zst /
+          echo "Scan complete."
+          ls -lh disk-usage-after.json.zst
+
+      - name: Upload Disk Usage Report
+        uses: actions/upload-artifact@v7
+        with:
+          name: ncdu-report
+          retention-days: 5
+          path: |
+            disk-usage-before.json.zst
+            disk-usage-after.json.zst
